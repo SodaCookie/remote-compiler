@@ -1,4 +1,3 @@
-
 let write_file filename string => {
   let outchan = open_out filename;
   Printf.fprintf outchan "%s" string;
@@ -61,7 +60,12 @@ let do_thing inchan outchan =>
     let lengthToRead = int_of_string length;
     let s = really_input_string inchan lengthToRead;
     write_file ("./scripts/" ^ filename ^ ".re") s;
-    run_command ("./node_modules/reason/src/rebuild.sh ./scripts/" ^ filename ^ ".native") outchan
+    run_command
+      (
+        "eval $(./node_modules/.bin/dependencyEnv) && ./node_modules/.bin/nopam && ./node_modules/reason/src/rebuild.sh ./scripts/" ^
+        filename ^ ".native"
+      )
+      outchan
   | _ =>
     output_string outchan "I got it! *Snap*! You're retarded\n";
     flush outchan
