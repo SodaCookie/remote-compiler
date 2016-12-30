@@ -1,4 +1,7 @@
-
+/*
+ * vim: set ft=rust:
+ * vim: set ft=reason:
+ */
 let read_file filename => {
   let inchan = open_in filename;
   let length = in_channel_length inchan;
@@ -33,7 +36,11 @@ let do_thing addr client_fun => {
   ()
 };
 
-let client_fun command filename inchan outchan =>
+let client_fun command filename inchan outchan => {
+  if (not @@ Sys.file_exists (filename ^ ".re")) {
+    print_endline @@ "FIle " ^ filename ^ " doesn't exist";
+    exit 1
+  };
   try {
     flush stdout;
     switch command {
@@ -49,7 +56,7 @@ let client_fun command filename inchan outchan =>
     | "load" =>
       output_string outchan "load\n";
       output_string outchan (filename ^ "\n");
-      let (filecontent, length) = read_file @@ (filename ^ ".re");
+      let (filecontent, length) = read_file @@ filename ^ ".re";
       output_string outchan (string_of_int length ^ "\n");
       output_string outchan filecontent;
       flush outchan;
@@ -65,7 +72,8 @@ let client_fun command filename inchan outchan =>
   | exn =>
     shutdown_connection inchan;
     raise exn
-  };
+  }
+};
 
 if (Array.length Sys.argv >= 4) {
   do_thing Sys.argv.(1) (client_fun Sys.argv.(2) Sys.argv.(3))
