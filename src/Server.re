@@ -9,16 +9,34 @@ let write_file filename string => {
 };
 
 let run_command command outchan => {
-  let process_inchan = Unix.open_process_in command;
+  let (process_in, process_out, process_err) =
+    Unix.open_process_full command (Unix.environment ());
   try (
     while true {
-      let s = input_line process_inchan;
+      let s = input_line process_in;
       output_string outchan (s ^ "\n");
       flush outchan
     }
   ) {
-  | End_of_file => close_in process_inchan
-  | exn => raise exn
+  | End_of_file =>
+    try (
+      while true {
+        let s = input_line process_err;
+        output_string outchan ("stderr: " ^ s ^ "\n");
+        flush outchan
+      }
+    ) {
+    | End_of_file => ()
+    };
+    switch (Unix.close_process_full (process_in, process_out, process_err)) {
+    | Unix.WEXITED statusCode
+    | Unix.WSIGNALED statusCode
+    | Unix.WSTOPPED statusCode =>
+      /* Need to handle each specially */
+      if (statusCode != 0) {
+        output_string outchan ("Closed with status code: " ^ string_of_int statusCode)
+      }
+    }
   }
 };
 
@@ -57,6 +75,8 @@ let do_thing inchan outchan =>
     let filename = "./_build/scripts/" ^ input_line inchan ^ ".native";
     if (Sys.file_exists filename) {
       run_command filename outchan
+    } else {
+      output_string outchan ("Could not find file " ^ filename)
     }
   | "load" =>
     let filename = input_line inchan;
@@ -67,7 +87,7 @@ let do_thing inchan outchan =>
     run_command
       (
         "eval $(./node_modules/.bin/dependencyEnv) && ./node_modules/.bin/nopam && ./node_modules/reason/src/rebuild.sh ./scripts/" ^
-        filename ^ ".native"
+        filename ^ ".native 2>&1 | refmterr"
       )
       outchan
   | _ =>

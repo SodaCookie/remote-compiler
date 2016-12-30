@@ -36,7 +36,11 @@ let do_thing addr client_fun => {
   ()
 };
 
-let client_fun command filename inchan outchan =>
+let client_fun command filename inchan outchan => {
+  if (not @@ Sys.file_exists (filename ^ ".re")) {
+    print_endline @@ "FIle " ^ filename ^ " doesn't exist";
+    exit 1
+  };
   try {
     flush stdout;
     switch command {
@@ -68,7 +72,8 @@ let client_fun command filename inchan outchan =>
   | exn =>
     shutdown_connection inchan;
     raise exn
-  };
+  }
+};
 
 if (Array.length Sys.argv >= 4) {
   do_thing Sys.argv.(1) (client_fun Sys.argv.(2) Sys.argv.(3))
