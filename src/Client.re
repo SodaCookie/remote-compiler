@@ -1,4 +1,7 @@
-
+/*
+ * vim: set ft=rust:
+ * vim: set ft=reason:
+ */
 let read_file filename => {
   let inchan = open_in filename;
   let length = in_channel_length inchan;
@@ -49,7 +52,7 @@ let client_fun command filename inchan outchan =>
     | "load" =>
       output_string outchan "load\n";
       output_string outchan (filename ^ "\n");
-      let (filecontent, length) = read_file @@ (filename ^ ".re");
+      let (filecontent, length) = read_file @@ filename ^ ".re";
       output_string outchan (string_of_int length ^ "\n");
       output_string outchan filecontent;
       flush outchan;
